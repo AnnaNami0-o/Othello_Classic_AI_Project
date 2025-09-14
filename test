@@ -1,0 +1,455 @@
+import tkinter as tk
+from tkinter import messagebox, scrolledtext
+from PIL import Image, ImageTk, ImageFilter
+import copy
+import math
+import pygame
+import os
+
+class OthelloGame:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("Othello")
+        self.root.geometry("600x600")
+        self.root.resizable(False, False)
+        self.root.configure(bg="#2c3e50")
+
+        # --- متغیرهای اصلی بازی ---
+        self.mode = None
+        self.player_color = None
+        self.board = [['' for _ in range(8)] for _ in range(8)]
+        self.current_player = 'black'
+        self.move_history = []
+        self.PHOTO_DIR = 'Photo'
+        self.ai_depth = 3
+
+        # --- تنظیمات پیش‌فرض تم، مهره و صدا ---
+        self.board_theme = 'green'
+        self.piece_style = 'default'
+        self.music_on = tk.BooleanVar(value=True)
+        self.sfx_on = tk.BooleanVar(value=True)
+
+        # --- متغیرهای مورد نیاز برای رابط کاربری ---
+        self.theme_photo_images = {}
+        self.piece_photo_images = {}
+        self.board_images = {}
+        self.piece_images = {}
+        
+        # --- راه‌اندازی صدا ---
+        pygame.mixer.init()
+        try:
+            pygame.mixer.music.load('music.mp3')
+            pygame.mixer.music.play(-1)
+            self.click_sound = pygame.mixer.Sound('click.wav')
+        except pygame.error as e:
+            print(f"Warning: Sound file not found: {e}")
+            self.click_sound = None
+
+        # --- بارگذاری تمام منابع و نمایش صفحه اولیه ---
+        self.load_menu_assets()
+        self.load_game_assets()
+        self.show_splash_screen()
+
+    def clear_frame(self):
+        for widget in self.root.winfo_children():
+            widget.destroy()
+
+    def show_splash_screen(self):
+        self.clear_frame()
+        try:
+            splash_image = Image.open(os.path.join(self.PHOTO_DIR, "Othello.jpg")).resize((600, 600), Image.LANCZOS)
+            self.splash_photo = ImageTk.PhotoImage(splash_image)
+            splash_label = tk.Label(self.root, image=self.splash_photo, borderwidth=0)
+            splash_label.pack()
+            self.root.after(1500, self.create_start_screen)
+        except FileNotFoundError:
+            self.create_start_screen()
+
+    def create_start_screen(self):
+        self.clear_frame()
+        # کد منوی اصلی ساده و خوانا نگه داشته شده
+        frame = tk.Frame(self.root, bg="#2c3e50")
+        frame.pack(expand=True)
+        
+        tk.Label(frame, text="OTHELLO", font=("Impact", 48, "bold"), bg="#2c3e50", fg="white").pack(pady=(50, 20))
+
+        btn_font = ("Calibri", 16, "bold")
+        btn_width = 20
+
+        tk.Button(frame, text="One Player", font=btn_font, width=btn_width, command=self.show_color_choice_screen).pack(pady=10)
+        tk.Button(frame, text="Two Players", font=btn_font, width=btn_width, command=self.start_two_player_mode).pack(pady=10)
+        tk.Button(frame, text="Options", font=btn_font, width=btn_width, command=self.show_options_screen).pack(pady=10)
+        tk.Button(frame, text="How To Play", font=btn_font, width=btn_width, command=self.show_how_to_play_screen).pack(pady=10)
+        tk.Button(frame, text="Exit", font=btn_font, width=btn_width, command=self.exit_game).pack(pady=10)
+
+    # --- بارگذاری عکس‌ها ---
+    
+    def load_menu_assets(self):
+        themes = {'green': 'boardgreen.jpg', 'red': 'board red.jpg', 'blue': 'boardblue.png', 'bvs': 'batmanvssuperman2.jpg'}
+        for name, fname in themes.items():
+            try:
+                img = Image.open(os.path.join(self.PHOTO_DIR, fname)).resize((60, 60), Image.LANCZOS)
+                self.theme_photo_images[name] = ImageTk.PhotoImage(img)
+            except FileNotFoundError:
+                print(f"Warning: Menu theme image not found: {fname}")
+
+        piece_styles = {'default': ('4.png', '3.png'), 'alt1': ('piece2.png', 'piece1.png'), 'bvs': ('batman.png', 'superman.png')}
+        for name, files in piece_styles.items():
+            try:
+                img1 = Image.open(os.path.join(self.PHOTO_DIR, files[0])).convert("RGBA")
+                img2 = Image.open(os.path.join(self.PHOTO_DIR, files[1])).convert("RGBA")
+                
+                size = 30
+                combined = Image.new('RGBA', (size * 2 + 5, size), (0,0,0,0))
+                img1.thumbnail((size, size), Image.LANCZOS)
+                img2.thumbnail((size, size), Image.LANCZOS)
+                combined.paste(img1, (0,0), img1)
+                combined.paste(img2, (size+5, 0), img2)
+                self.piece_photo_images[name] = ImageTk.PhotoImage(combined)
+            except FileNotFoundError:
+                print(f"Warning: Menu piece images not found for style '{name}'")
+    
+    def load_game_assets(self):
+        board_files = {'green': 'boardgreen.jpg', 'red': 'board red.jpg', 'blue': 'boardblue.png', 'bvs': 'batmanvssuperman2.jpg'}
+        for name, filename in board_files.items():
+            try:
+                img = Image.open(os.path.join(self.PHOTO_DIR, filename)).resize((400, 400), Image.LANCZOS)
+                self.board_images[name] = ImageTk.PhotoImage(img)
+            except FileNotFoundError:
+                self.board_images[name] = None
+
+        piece_files = {'default': {'black': '4.png', 'white': '3.png'}, 'alt1': {'black': 'piece2.png', 'white': 'piece1.png'}, 'bvs': {'black': 'batman.png', 'white': 'superman.png'}}
+        for style_name, files in piece_files.items():
+            try:
+                black_img = Image.open(os.path.join(self.PHOTO_DIR, files['black'])).convert("RGBA")
+                white_img = Image.open(os.path.join(self.PHOTO_DIR, files['white'])).convert("RGBA")
+                black_img.thumbnail((45, 45), Image.LANCZOS)
+                white_img.thumbnail((45, 45), Image.LANCZOS)
+                self.piece_images[style_name] = {'black': ImageTk.PhotoImage(black_img), 'white': ImageTk.PhotoImage(white_img)}
+            except FileNotFoundError:
+                if 'default' not in self.piece_images: self.piece_images['default'] = {}
+
+    # --- صفحات برنامه ---
+
+    def show_options_screen(self):
+        self.clear_frame()
+        frame = tk.Frame(self.root, bg="#2c3e50")
+        frame.pack(expand=True)
+        
+        tk.Label(frame, text="OPTIONS", font=("Impact", 36, "bold"), bg="#2c3e50", fg="white").pack(pady=20)
+        
+        # انتخاب تم
+        tk.Label(frame, text="Board Theme:", font=("Calibri", 16, "bold"), bg="#2c3e50", fg="white").pack()
+        theme_frame = tk.Frame(frame, bg="#2c3e50")
+        theme_frame.pack(pady=10)
+        for name, image in self.theme_photo_images.items():
+            tk.Button(theme_frame, image=image, command=lambda n=name: self.set_board_theme(n)).pack(side=tk.LEFT, padx=5)
+
+        # انتخاب مهره
+        tk.Label(frame, text="Piece Style:", font=("Calibri", 16, "bold"), bg="#2c3e50", fg="white").pack()
+        piece_frame = tk.Frame(frame, bg="#2c3e50")
+        piece_frame.pack(pady=10)
+        for name, image in self.piece_photo_images.items():
+            tk.Button(piece_frame, image=image, command=lambda n=name: self.set_piece_style(n)).pack(side=tk.LEFT, padx=5)
+
+        # تنظیمات صدا
+        tk.Checkbutton(frame, text="Background Music", variable=self.music_on, font=("Calibri", 14), bg="#2c3e50", fg="white", selectcolor="black", command=self.toggle_music).pack(pady=5)
+        tk.Checkbutton(frame, text="Sound Effects", variable=self.sfx_on, font=("Calibri", 14), bg="#2c3e50", fg="white", selectcolor="black").pack(pady=5)
+
+        tk.Button(frame, text="Back to Menu", font=("Calibri", 14, "bold"), command=self.create_start_screen).pack(pady=30)
+    
+    def set_board_theme(self, name):
+        self.board_theme = name
+        print(f"Board theme set to: {name}")
+
+    def set_piece_style(self, name):
+        self.piece_style = name
+        print(f"Piece style set to: {name}")
+
+    def toggle_music(self):
+        if self.music_on.get():
+            if not pygame.mixer.music.get_busy(): pygame.mixer.music.play(-1)
+        else:
+            pygame.mixer.music.stop()
+
+    def show_how_to_play_screen(self):
+        self.clear_frame()
+        frame = tk.Frame(self.root, bg="#2c3e50")
+        frame.pack(expand=True, fill="both")
+        tk.Label(frame, text="HOW TO PLAY", font=("Impact", 36, "bold"), bg="#2c3e50", fg="white").pack(pady=20)
+        rules_text = (
+            "1. Black always moves first.\n\n"
+            "2. Place your piece so that one or more of your opponent's pieces\n"
+            "are 'sandwiched' between your new piece and another of your pieces.\n\n"
+            "3. All sandwiched opponent pieces are flipped to your color.\n\n"
+            "4. A move must flip at least one opponent piece.\n\n"
+            "5. If you have no valid moves, your turn is passed.\n\n"
+            "6. The game ends when the board is full or no player has a valid move.\n\n"
+            "7. The player with the most pieces on the board wins."
+        )
+        tk.Message(frame, text=rules_text, font=("Calibri", 14), bg="#2c3e50", fg="white", width=500).pack(pady=10)
+        tk.Button(frame, text="Back to Menu", font=("Calibri", 14, "bold"), command=self.create_start_screen).pack(pady=20)
+
+    def exit_game(self):
+        if messagebox.askyesno("Exit", "Are you sure you want to exit?"):
+            self.root.quit()
+
+    def show_color_choice_screen(self):
+        self.clear_frame()
+        frame = tk.Frame(self.root, bg="#2c3e50")
+        frame.pack(expand=True)
+        tk.Label(frame, text="Choose Your Piece", font=("Impact", 24, "bold"), bg="#2c3e50", fg="white").pack(pady=20)
+
+        colors_frame = tk.Frame(frame, bg="#2c3e50")
+        colors_frame.pack(pady=10)
+        
+        # به صورت داینامیک عکس‌ها را از استایل انتخابی می‌خواند
+        style_images = self.piece_images.get(self.piece_style, self.piece_images.get('default'))
+        if style_images:
+            black_img = style_images.get('black')
+            white_img = style_images.get('white')
+            
+            b1 = tk.Button(colors_frame, image=black_img, command=lambda: self.set_player_color_and_start('black'), bg="#2c3e50", bd=0, activebackground="#2c3e50")
+            b1.pack(side=tk.LEFT, padx=15)
+            b1.image = black_img # جلوگیری از حذف عکس
+
+            b2 = tk.Button(colors_frame, image=white_img, command=lambda: self.set_player_color_and_start('white'), bg="#2c3e50", bd=0, activebackground="#2c3e50")
+            b2.pack(side=tk.LEFT, padx=15)
+            b2.image = white_img # جلوگیری از حذف عکس
+        
+        tk.Button(frame, text="Back to Menu", font=("Calibri", 14, "bold"), command=self.create_start_screen).pack(pady=30)
+    
+    def set_player_color_and_start(self, color):
+        self.player_color = color
+        self.start_game("one_player")
+
+    def start_two_player_mode(self):
+        self.start_game("two_players")
+
+    def start_game(self, mode):
+        self.mode = mode
+        self.setup_board_state()
+        self.create_game_screen()
+        if self.mode == "one_player" and self.current_player != self.player_color:
+            self.root.after(500, self.ai_move)
+
+    def setup_board_state(self):
+        self.board = [['' for _ in range(8)] for _ in range(8)]
+        self.board[3][3], self.board[4][4] = 'white', 'white'
+        self.board[3][4], self.board[4][3] = 'black', 'black'
+        self.current_player = 'black'
+        self.move_history = []
+    
+    # --- صفحه و منطق اصلی بازی ---
+    
+    def create_game_screen(self):
+        self.clear_frame()
+        
+        main_frame = tk.Frame(self.root, bg="#2c3e50")
+        main_frame.pack(pady=10)
+
+        self.canvas = tk.Canvas(main_frame, width=400, height=400, borderwidth=0, highlightthickness=0)
+        self.canvas.pack()
+        self.canvas.bind("<Button-1>", self.click_handler)
+
+        status_frame = tk.Frame(main_frame, bg="#2c3e50")
+        status_frame.pack(fill="x", pady=5)
+        
+        self.status_label = tk.Label(status_frame, font=("Calibri", 14, "bold"), bg="#2c3e50", fg="white")
+        self.status_label.pack(side=tk.LEFT, padx=10)
+        
+        self.score_label = tk.Label(status_frame, font=("Calibri", 14), bg="#2c3e50", fg="white")
+        self.score_label.pack(side=tk.RIGHT, padx=10)
+        
+        button_frame = tk.Frame(self.root, bg="#2c3e50")
+        button_frame.pack(pady=10)
+        tk.Button(button_frame, text="Undo", command=self.undo_move).pack(side=tk.LEFT, padx=5)
+        tk.Button(button_frame, text="Menu", command=self.create_start_screen).pack(side=tk.LEFT, padx=5)
+
+        self.draw_board()
+        self.update_score_and_status()
+
+    def draw_board(self):
+        self.canvas.delete("all")
+        theme_image = self.board_images.get(self.board_theme)
+        if theme_image:
+            self.canvas.create_image(0, 0, image=theme_image, anchor="nw")
+        else:
+            self.canvas.create_rectangle(0, 0, 400, 400, fill='green', outline='black')
+
+        pieces_to_draw = self.piece_images.get(self.piece_style, self.piece_images.get('default'))
+        if pieces_to_draw:
+            for r, row_data in enumerate(self.board):
+                for c, piece_color in enumerate(row_data):
+                    if piece_color:
+                        self.canvas.create_image(c * 50 + 25, r * 50 + 25, image=pieces_to_draw[piece_color])
+        
+        self.highlight_valid_moves()
+
+    def click_handler(self, event):
+        if self.mode == 'one_player' and self.current_player != self.player_color:
+            return 
+        
+        col, row = event.x // 50, event.y // 50
+        if self.make_move(row, col):
+            if self.mode == 'one_player' and self.current_player != self.player_color:
+                self.root.after(500, self.ai_move)
+
+    def make_move(self, row, col):
+        if not self.is_valid_move(row, col, self.current_player):
+            return False
+        
+        self.move_history.append(copy.deepcopy(self.board))
+        
+        pieces_to_flip = self.get_pieces_to_flip(row, col, self.current_player)
+        self.board[row][col] = self.current_player
+        for r, c in pieces_to_flip:
+            self.board[r][c] = self.current_player
+
+        if self.sfx_on.get() and self.click_sound:
+            self.click_sound.play()
+        
+        self.switch_player()
+        self.draw_board()
+        self.update_score_and_status()
+
+        if not self.has_any_valid_move(self.current_player):
+            opponent = 'white' if self.current_player == 'black' else 'black'
+            if not self.has_any_valid_move(opponent):
+                self.end_game()
+            else:
+                messagebox.showinfo("Pass Turn", f"{self.current_player.capitalize()}'s turn is passed.")
+                self.switch_player()
+                self.update_score_and_status()
+                if self.mode == 'one_player' and self.current_player != self.player_color:
+                    self.root.after(500, self.ai_move)
+        return True
+
+    def switch_player(self):
+        self.current_player = 'white' if self.current_player == 'black' else 'black'
+    
+    def update_score_and_status(self):
+        black_score = sum(row.count('black') for row in self.board)
+        white_score = sum(row.count('white') for row in self.board)
+        self.score_label.config(text=f"Black: {black_score} | White: {white_score}")
+        
+        name_map = {"black": "Black", "white": "White"}
+        if self.piece_style == "bvs": name_map = {"black": "Batman", "white": "Superman"}
+        player_name = name_map.get(self.current_player, self.current_player.capitalize())
+        self.status_label.config(text=f"{player_name}'s Turn")
+
+    def is_valid_move(self, row, col, player):
+        if not (0 <= row < 8 and 0 <= col < 8 and self.board[row][col] == ''):
+            return False
+        return len(self.get_pieces_to_flip(row, col, player)) > 0
+    
+    def get_pieces_to_flip(self, row, col, player):
+        opponent = 'white' if player == 'black' else 'black'
+        pieces_to_flip = []
+        for dr, dc in [(0, 1), (1, 0), (0, -1), (-1, 0), (1, 1), (-1, -1), (1, -1), (-1, 1)]:
+            line, r, c = [], row + dr, col + dc
+            while 0 <= r < 8 and 0 <= c < 8 and self.board[r][c] == opponent:
+                line.append((r, c)); r, c = r + dr, c + dc
+            if 0 <= r < 8 and 0 <= c < 8 and self.board[r][c] == player:
+                pieces_to_flip.extend(line)
+        return pieces_to_flip
+
+    def has_any_valid_move(self, player):
+        return any(self.is_valid_move(r, c, player) for r in range(8) for c in range(8))
+        
+    def highlight_valid_moves(self):
+        if self.mode == 'one_player' and self.current_player != self.player_color:
+             return
+        for r in range(8):
+            for c in range(8):
+                if self.is_valid_move(r, c, self.current_player):
+                    self.canvas.create_oval(c*50+15, r*50+15, c*50+35, r*50+35, outline="yellow", width=2)
+
+    def undo_move(self):
+        if not self.move_history: return
+        num_undos = 2 if self.mode == 'one_player' and len(self.move_history) > 1 else 1
+        for _ in range(num_undos):
+            if self.move_history: self.board = self.move_history.pop()
+        
+        total_pieces = sum(row.count('black') + row.count('white') for row in self.board)
+        self.current_player = 'white' if (total_pieces - 4) % 2 != 0 else 'black'
+
+        self.draw_board()
+        self.update_score_and_status()
+
+    def end_game(self):
+        b = sum(row.count('black') for row in self.board)
+        w = sum(row.count('white') for row in self.board)
+        winner = "Black" if b > w else "White" if w > b else "No one (Draw)"
+        messagebox.showinfo("Game Over", f"{winner} wins!\n\nBlack: {b}\nWhite: {w}")
+        self.create_start_screen()
+
+    # --- هوش مصنوعی (Minimax) ---
+    def ai_move(self):
+        if self.current_player != self.player_color:
+            _, move = self.minimax(self.board, self.ai_depth, -math.inf, math.inf, True, self.current_player)
+            if move:
+                self.make_move(move[0], move[1])
+
+    def minimax(self, board, depth, alpha, beta, maximizing, player):
+        if depth == 0 or not self.has_any_valid_move_for_sim(board, player):
+            ai_color = 'white' if self.player_color == 'black' else 'black'
+            return self.evaluate_board(board, ai_color), None
+        
+        valid_moves = [ (r, c) for r in range(8) for c in range(8) if self.is_valid_move_for_sim(board, r, c, player) ]
+
+        best_move = valid_moves[0] if valid_moves else None
+        if maximizing:
+            max_eval = -math.inf
+            for move in valid_moves:
+                new_board = self.apply_sim_move(board, move, player)
+                eval, _ = self.minimax(new_board, depth - 1, alpha, beta, False, 'white' if player == 'black' else 'black')
+                if eval > max_eval: max_eval, best_move = eval, move
+                alpha = max(alpha, eval)
+                if beta <= alpha: break
+            return max_eval, best_move
+        else:
+            min_eval = math.inf
+            for move in valid_moves:
+                new_board = self.apply_sim_move(board, move, player)
+                eval, _ = self.minimax(new_board, depth - 1, alpha, beta, True, 'white' if player == 'black' else 'black')
+                if eval < min_eval: min_eval, best_move = eval, move
+                beta = min(beta, eval)
+                if beta <= alpha: break
+            return min_eval, best_move
+
+    def evaluate_board(self, board, ai_color):
+        player_color = 'white' if ai_color == 'black' else 'black'
+        return sum(row.count(ai_color) for row in board) - sum(row.count(player_color) for row in board)
+    
+    def has_any_valid_move_for_sim(self, board, player):
+        return any(self.is_valid_move_for_sim(board, r, c, player) for r in range(8) for c in range(8))
+        
+    def is_valid_move_for_sim(self, board, r, c, p):
+        if not (0<=r<8 and 0<=c<8 and board[r][c]==''): return False
+        o = 'w' if p[0]=='b' else 'b'
+        for dr, dc in [(0,1),(1,0),(0,-1),(-1,0),(1,1),(-1,-1),(1,-1),(-1,1)]:
+            x,y=r+dr,c+dc
+            if 0<=x<8 and 0<=y<8 and board[x][y] and board[x][y][0]==o[0]:
+                while 0<=x<8 and 0<=y<8:
+                    x,y=x+dr,y+dc
+                    if not (0<=x<8 and 0<=y<8) or not board[x][y]: break
+                    if board[x][y][0]==p[0]: return True
+        return False
+
+    def apply_sim_move(self, board, move, player):
+        new_board = copy.deepcopy(board)
+        r, c = move; new_board[r][c] = player
+        o = 'white' if player == 'black' else 'black'
+        for dr, dc in [(0,1),(1,0),(0,-1),(-1,0),(1,1),(-1,-1),(1,-1),(-1,1)]:
+            line, x, y = [], r+dr, c+dc
+            while 0<=x<8 and 0<=y<8 and new_board[x][y]==o:
+                line.append((x,y)); x,y = x+dr, y+dc
+            if 0<=x<8 and 0<=y<8 and new_board[x][y]==player:
+                for fr, fc in line: new_board[fr][fc] = player
+        return new_board
+
+if __name__ == "__main__":
+    root = tk.Tk()
+    game = OthelloGame(root)
+    root.mainloop()
