@@ -87,17 +87,11 @@ python Othello.py
 
 ---
 
-## 📊 Outputs (Screenshots)
-It is highly recommended to add screenshots of your application to showcase its features visually.
+## 📊 Demo
 
-*(Example of how to add images in Markdown)*
-```markdown
-![Main Menu](link_to_your_screenshot.jpg)
-```
+Below is a short demonstration of the game's core features, including the main menu, the options screen, and the different gameplay modes:
 
-| Main Menu | Options Screen |
-| :---: | :---: |
-| *(Your Screenshot Here)* | *(Your Screenshot Here)* |
+![Othello Game Demo](Photo/game-demo.gif)
 
 ---
 
