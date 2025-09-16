@@ -44,7 +44,7 @@ The main menu is the central hub of the application, providing access to all gam
 - **Options:**
   - This section lets you fully personalize your gaming experience. The available settings include:
     - **Board Theme:** You can choose from several visual themes for the game board, including **Green** (Default), **Red**, **Blue**, and a special **"Batman vs. Superman"** theme.
-   - **Piece Style:** The appearance of the game pieces can be changed by selecting from several unique style sets, including **Default** (classic black and white discs), **Gems** (ruby and sapphire stones), and the special **BVS** theme (Batman and Superman logos).
+    - **Piece Style:** The appearance of the game pieces can be changed by selecting from several unique style sets, including **Default** (classic black and white discs), **Gems** (ruby and sapphire stones), and the special **BVS** theme (Batman and Superman logos).
     - **Audio Controls:** You can independently toggle the **Background Music** and **Sound Effects** (like the piece placement sound) on or off.
 
 - **How to Play:**
