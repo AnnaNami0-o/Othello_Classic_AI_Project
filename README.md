@@ -1,4 +1,4 @@
-# 🎮 Othello Classic AI 🎮
+# ⚫⚪ Othello Classic AI ⚪⚫
 
 This repository contains the source code for a classic Othello (Reversi) game built in Python. The game features a full graphical user interface (GUI) using **`tkinter`**, audio support via **`pygame`**, and a challenging single-player mode against an AI powered by the **Minimax algorithm** with Alpha-Beta pruning.
 
@@ -7,7 +7,10 @@ This repository contains the source code for a classic Othello (Reversi) game bu
 ---
 
 ## 📌 Project Overview
-The workflow and features implemented in **`Othello.py`** include:
+
+This repository contains a fully-featured Othello (Reversi) game built with Python. The project combines a robust game engine with a polished, interactive GUI and a challenging AI opponent. Below is a summary of its core components, followed by a detailed guide to its features.
+
+### High-Level Features
 
 - **Game Engine:**
   - Full implementation of Othello rules, including piece flipping, valid move calculation, and end-game conditions.
@@ -20,11 +23,37 @@ The workflow and features implemented in **`Othello.py`** include:
   - An AI player based on the **Minimax algorithm** to find the optimal move.
   - **Alpha-Beta pruning** is implemented to significantly improve the AI's decision-making speed.
   - Three adjustable difficulty levels (Easy, Normal, Hard) that control the algorithm's search depth.
-- **Customization & Features:**
-  - **Multiple Themes:** Players can choose from different board colors and piece styles, including a special "Batman vs. Superman" theme.
-  - **Sound Control:** Background music and sound effects can be toggled on or off in the options menu.
-  - **Undo Move:** A feature to take back the last move.
-  - **In-Game Help:** A "How to Play" section with images explaining the rules of Othello.
+- **Gameplay Experience & Customization:**
+  - **Visual Personalization:** Tailor the game's appearance with a variety of selectable board themes and unique piece designs.
+  - **Audio Settings:** Manage the game's audio with separate controls for background music and in-game sound effects.
+  - **Strategic Flexibility:** A handy "Undo" feature is available, allowing players to reverse their most recent move.
+  - **Player Guidance:** An integrated "How to Play" guide, complete with visual aids, explains the rules and game mechanics for new players.
+
+### Main Menu Functionality
+
+The main menu is the central hub of the application, providing access to all game modes and settings:
+
+- **One Player (Player vs. AI):**
+  - In this mode, you challenge the AI opponent. Before the game begins, a setup screen appears, allowing you to:
+    - Choose your piece color (Black or White).
+    - Select the AI's difficulty level from the three available options.
+
+- **Two Players (Player vs. Player):**
+  - This mode allows you to play a classic Othello match against a friend locally on the same computer. The game proceeds with each player taking turns.
+
+- **Options:**
+  - This section lets you fully personalize your gaming experience. The available settings include:
+    - **Board Theme:** You can choose from several visual themes for the game board, including **Green** (Default), **Red**, **Blue**, and a special **"Batman vs. Superman"** theme.
+   - **Piece Style:** The appearance of the game pieces can be changed by selecting from several unique style sets, including **Default** (classic black and white discs), **Gems** (ruby and sapphire stones), and the special **BVS** theme (Batman and Superman logos).
+    - **Audio Controls:** You can independently toggle the **Background Music** and **Sound Effects** (like the piece placement sound) on or off.
+
+- **How to Play:**
+  - A comprehensive section designed to help new players, which includes two parts:
+    - **Instructions:** General guidance on how to navigate the menus and use the game's features.
+    - **Game Rules:** A detailed explanation of the rules of Othello, accompanied by **images** to clearly illustrate key concepts like how to capture opponent pieces.
+
+- **Exit:**
+  - To prevent accidentally closing the game, this option displays a confirmation dialog asking if you are sure you want to exit the application.
 
 ---
 
