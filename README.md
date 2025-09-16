@@ -73,13 +73,14 @@ Othello_Classic_AI_Project/
 ## 🛠️ Requirements & Setup
 
 ### 1) Install Python packages
-Make sure you have Python 3.x installed. Then, install the required dependencies from the `requirements.txt` file.
+Make sure you have Python 3.x installed. The external libraries required for this project (`pygame`, `Pillow`) are listed in the `requirements.txt` file. You can install them with a single command:
 ```bash
 pip install -r requirements.txt
 ```
+> 💡 **Note:** Other libraries used, such as `tkinter`, `os`, and `math`, are part of Python's Standard Library and do not require separate installation.
 
 ### 2) Run the game
-Execute the main Python script from your terminal to launch the game.
+Execute the main Python script from your terminal to launch the game:
 ```bash
 python Othello.py
 ```
