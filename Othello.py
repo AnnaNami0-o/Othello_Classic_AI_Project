@@ -43,11 +43,11 @@ class OthelloGame:
 
         pygame.mixer.init()
         try:
-            pygame.mixer.music.load('music.mp3')
+            pygame.mixer.music.load('Background_Music.mp3')
             pygame.mixer.music.play(-1)
-            self.dice_roll_sound = pygame.mixer.Sound('click.wav')
+            self.dice_roll_sound = pygame.mixer.Sound('Piece_Place.wav')
             # --- خط جدید: بارگذاری صدای خطا ---
-            self.error_sound = pygame.mixer.Sound('error.mp3')
+            self.error_sound = pygame.mixer.Sound('Wrong_Placement.mp3')
         except Exception as e:
             print(f"Error loading sound: {e}")
             self.dice_roll_sound = None
@@ -349,8 +349,8 @@ class OthelloGame:
         else:
             self.options_canvas.configure(bg="#2c3e50")
 
-        # کادر اصلی
-        self.options_canvas.create_rectangle(50, 50, 550, 550, fill="#ffffff", stipple="gray50", outline="")
+        self._create_rounded_rect(self.options_canvas, 50, 50, 550, 550, radius=20, fill="white", stipple="gray50", outline="")
+        
         title_font = ("Impact", 36, "bold")
         self.options_canvas.create_text(300, 90, text="OPTIONS", font=title_font, fill="#1c2833")
 
@@ -361,43 +361,36 @@ class OthelloGame:
         # بخش تنظیمات صدا
         self.options_canvas.create_text(100, 380, text="Sound Settings:", font=("Calibri", 16, "bold"), anchor="w")
 
-        # وضعیت اولیه
         self.music_enabled = self.music_on.get()
         self.sfx_enabled = self.sfx_on.get()
 
-        # --- ناحیه کلیک مشترک موسیقی ---
-        self.music_click_area = self.options_canvas.create_rectangle(
-            100, 420, 300, 442, outline="", fill="", tags=("music_toggle",)
-        )
-        self.music_box = self.options_canvas.create_rectangle(
-            110, 421, 130, 441, outline="black", width=2
+        # --- تغییر اصلی: باکس و متن، خودشان قابل کلیک می‌شوند ---
+        self.music_box = self._create_rounded_rect(
+            self.options_canvas, 110, 421, 130, 441, radius=10, fill="", outline="black", width=2,
+            tags="music_toggle"  # تگ کلیک به خود باکس اضافه شد
         )
         self.music_text = self.options_canvas.create_text(
-            140, 431, text="Background Music", font=("Calibri", 14), anchor="w"
+            140, 431, text="Background Music", font=("Calibri", 14), anchor="w",
+            tags="music_toggle"  # تگ کلیک به متن هم اضافه شد
         )
         self._draw_tick(self.music_box, self.music_enabled)
 
-        # --- ناحیه کلیک مشترک افکت صدا ---
-        self.sfx_click_area = self.options_canvas.create_rectangle(
-            100, 450, 300, 472, outline="", fill="", tags=("sfx_toggle",)
-        )
-        self.sfx_box = self.options_canvas.create_rectangle(
-            110, 451, 130, 471, outline="black", width=2
+        self.sfx_box = self._create_rounded_rect(
+            self.options_canvas, 110, 451, 130, 471, radius=10, fill="", outline="black", width=2,
+            tags="sfx_toggle"  # تگ کلیک به خود باکس اضافه شد
         )
         self.sfx_text = self.options_canvas.create_text(
-            140, 461, text="Move Sound Effects", font=("Calibri", 14), anchor="w"
+            140, 461, text="Move Sound Effects", font=("Calibri", 14), anchor="w",
+            tags="sfx_toggle"  # تگ کلیک به متن هم اضافه شد
         )
         self._draw_tick(self.sfx_box, self.sfx_enabled)
 
-        # رویدادها
+        # رویدادها به همان تگ‌ها متصل باقی می‌مانند
         self.options_canvas.tag_bind("music_toggle", "<Button-1>", lambda e: self._toggle_music_box())
         self.options_canvas.tag_bind("sfx_toggle", "<Button-1>", lambda e: self._toggle_sfx_box())
 
-
-        # دکمه بازگشت
         if hasattr(self, '_create_styled_button'):
             self._create_styled_button(self.options_canvas, 300, 510, "Back to Menu", self.create_start_screen)
-
 
     def _draw_tick(self, box_id, enabled):
         if hasattr(self, "_tick_lines"):
@@ -407,12 +400,17 @@ class OthelloGame:
             self._tick_lines = {}
 
         if enabled:
-            x1, y1, x2, y2 = self.options_canvas.coords(box_id)
-            tick1 = self.options_canvas.create_line(x1+3, (y1+y2)//2, (x1+x2)//2, y2-3, fill="green", width=2)
-            tick2 = self.options_canvas.create_line((x1+x2)//2, y2-3, x2-3, y1+3, fill="green", width=2)
+            # --- تغییر اصلی فقط در این خط است ---
+            # به جای "coords" از "bbox" استفاده می‌کنیم
+            x1, y1, x2, y2 = self.options_canvas.bbox(box_id)
+            
+            tick1 = self.options_canvas.create_line(x1+3, (y1+y2)//2, (x1+x2)//2, y2-3, fill="#007BFF", width=2)
+            tick2 = self.options_canvas.create_line((x1+x2)//2, y2-3, x2-3, y1+3, fill="#007BFF", width=2)
             self._tick_lines[box_id] = [tick1, tick2]
         else:
             self._tick_lines[box_id] = []
+
+
 
     def _toggle_music_box(self):
         self.music_enabled = not self.music_enabled
@@ -442,6 +440,7 @@ class OthelloGame:
         self.update_selection_indicator()
 
     # این نسخه را جایگزین تابع فعلی کنید
+    # این کد را به طور کامل جایگزین تابع render_pieces فعلی خود کنید
     def render_pieces(self):
         self.options_canvas.create_text(100, 280, text="Piece Style:", font=("Calibri", 16, "bold"), anchor="w")
         x, y, padding = 150, 330, 140
@@ -450,9 +449,13 @@ class OthelloGame:
             tag = f"piece_{name}"
             img_combined = images['normal']
             self.options_canvas.create_image(x, y, image=img_combined, tags=(tag,))
-            # --- تغییر اصلی: استفاده از توابع جدید برای افکت بزرگنمایی ---
-            self.options_canvas.tag_bind(tag, "<Enter>", self._on_canvas_item_grow)
-            self.options_canvas.tag_bind(tag, "<Leave>", self._on_canvas_item_shrink)
+            
+            # --- اصلاح اصلی اینجاست ---
+            # به جای توابع grow/shrink، از توابعی استفاده می‌کنیم که عکس را جایگزین می‌کنند
+            # این کد دقیقا مثل بخش Board Theme عمل می‌کند
+            self.options_canvas.tag_bind(tag, "<Enter>", lambda e, t=tag, n=name: self.on_item_enter(t, self.piece_photo_images[n]['large']))
+            self.options_canvas.tag_bind(tag, "<Leave>", lambda e, t=tag, n=name: self.on_item_leave(t, self.piece_photo_images[n]['normal']))
+            
             self.options_canvas.tag_bind(tag, "<Button-1>", lambda e, t=tag, n=name: self.on_piece_click(t, n))
             x += padding
             
@@ -462,6 +465,7 @@ class OthelloGame:
     def on_item_enter(self, tag, large_img):
         self.options_canvas.itemconfig(tag, image=large_img)
         self.options_canvas.tag_raise(tag)
+        self.update_selection_indicator()
 
     def on_item_leave(self, tag, normal_img):
         self.options_canvas.itemconfig(tag, image=normal_img)
@@ -515,11 +519,15 @@ class OthelloGame:
                 coords = self.options_canvas.bbox(tag)
                 if coords:
                     x1, y1, x2, y2 = coords
-                    self.options_canvas.create_rectangle(
+                    self._create_rounded_rect(
+                        self.options_canvas, 
                         x1 - 6, y1 - 6, x2 + 6, y2 + 6,
-                        outline="#007BFF", width=4, tags="selection_border"
+                        radius=15,
+                        fill="",  # --- این خط رو اضافه کن تا داخلش شفاف بشه ---
+                        outline="#007BFF", 
+                        width=4, 
+                        tags="selection_border"
                     )
-
                 
 
 
@@ -589,8 +597,14 @@ class OthelloGame:
 
         tag = f"btn_{text.replace(' ', '')}"
 
-        # ایجاد شکل دکمه با استفاده از عرض جدید
-        shape = canvas.create_rectangle(x_pos - width, y_pos - 22, x_pos + width, y_pos + 22, 
+            # --- تغییر اصلی اینجاست ---
+        # به جای create_rectangle از تابع _create_rounded_rect برای کشیدن دکمه استفاده می‌کنیم
+        x1, y1 = x_pos - width, y_pos - 22
+        x2, y2 = x_pos + width, y_pos + 22
+        radius = 20  # می‌تونی این مقدار رو برای گردی بیشتر یا کمتر تغییر بدی
+
+        shape = self._create_rounded_rect(canvas, x1, y1, x2, y2, 
+                                        radius=radius, 
                                         fill=initial_fill_color, 
                                         outline=button_outline_color,
                                         width=2,
@@ -598,6 +612,7 @@ class OthelloGame:
         
         text_widget = canvas.create_text(x_pos, y_pos, text=text, font=font, 
                                         fill=initial_text_color, tags=(tag, f"{tag}_text"))
+
 
         def on_enter(event):
             canvas.itemconfig(shape, fill=hover_fill_color)
@@ -625,8 +640,8 @@ class OthelloGame:
             canvas.create_image(0, 0, image=self.bg_image, anchor="nw")
         else:
             canvas.configure(bg="#2c3e50")
+        self._create_rounded_rect(canvas, 50, 50, 550, 550, radius=20, fill="white", stipple="gray50", outline="")
 
-        canvas.create_rectangle(50, 50, 550, 550, fill="#ffffff", stipple="gray50", outline="")
 
         title_font = ("Impact", 36, "bold")
         canvas.create_text(300, 100, text="HOW TO PLAY", font=title_font, fill="#1c2833")
@@ -678,7 +693,8 @@ class OthelloGame:
         else:
             canvas.configure(bg="#2c3e50")
 
-        canvas.create_rectangle(50, 50, 550, 550, fill="#ffffff", stipple="gray50", outline="")
+        self._create_rounded_rect(canvas, 50, 50, 550, 550, radius=20, fill="white", stipple="gray50", outline="")
+
 
         title_font = ("Impact", 36, "bold")
         canvas.create_text(300, 100, text="GAME RULES", font=title_font, fill="#1C2833")
@@ -772,15 +788,12 @@ class OthelloGame:
     
 
     def _update_choice_screen_borders(self, canvas):
-        """تابع کمکی جدید: این تابع کادر آبی را برای هر دو انتخاب (مهره و سختی) آپدیت می‌کند"""
-        canvas.delete("selection_border") # حذف تمام کادرهای آبی قبلی
+        canvas.delete("selection_border")
         
         tags_to_update = []
-        # اضافه کردن تگ مهره انتخابی
         if self.player_color:
             tags_to_update.append(f"piece_choice_{self.player_color}")
         
-        # اضافه کردن تگ درجه سختی انتخابی
         if hasattr(self, 'selected_difficulty_tag'):
             tags_to_update.append(self.selected_difficulty_tag)
 
@@ -788,9 +801,15 @@ class OthelloGame:
             if canvas.find_withtag(tag):
                 coords = canvas.bbox(tag)
                 if coords:
-                    canvas.create_rectangle(
-                        coords[0] - 8, coords[1] - 8, coords[2] + 8, coords[3] + 8,
-                        outline="#007BFF", width=3, tags="selection_border"
+                    x1, y1, x2, y2 = coords
+                    self._create_rounded_rect(
+                        canvas, 
+                        x1 - 8, y1 - 8, x2 + 8, y2 + 8,
+                        radius=20,
+                        fill="",  # --- این خط رو هم اینجا اضافه کن ---
+                        outline="#007BFF", 
+                        width=3, 
+                        tags="selection_border"
                     )
 
 
