@@ -116,3 +116,20 @@ It is highly recommended to add screenshots of your application to showcase its 
 **Q: How do I change the theme or piece style?** A: From the main menu, go to the "Options" screen. There you can select your preferred board theme and piece style. The changes will be applied to your next game.
 
 **Q: Is the AI beatable?** A: Yes, especially on the "Easy" and "Normal" difficulty settings. The "Hard" setting provides a significant challenge as the AI searches deeper for the best possible move.
+
+---
+
+## 🤝 Contributing
+Contributions are welcome! If you have suggestions for improvements or encounter any bugs, please feel free to open an issue in the GitHub repository. For code contributions, please fork the repository and submit a pull request.
+
+---
+
+## 🙏 Acknowledgements
+The design and user experience of this project were inspired by modern UI/UX trends found in various Android game applications and on design showcase websites like **Behance** and **Dribbble**. The goal was to create a clean, intuitive, and visually appealing interface for a classic board game.
+
+The audio assets used in this project (background music and sound effects) were sourced from royalty-free providers.
+
+---
+
+## 📜 License
+This project is licensed under the MIT License. See the `LICENSE` file for more details.
